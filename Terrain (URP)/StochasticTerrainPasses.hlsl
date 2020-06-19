@@ -23,8 +23,8 @@ SAMPLER(sampler_TerrainHolesTexture);
 
 void ClipHoles(float2 uv)
 {
-	float hole = SAMPLE_TEXTURE2D(_TerrainHolesTexture, sampler_TerrainHolesTexture, uv).r;
-	clip(hole == 0.0f ? -1 : 1);
+    float hole = SAMPLE_TEXTURE2D(_TerrainHolesTexture, sampler_TerrainHolesTexture, uv).r;
+    clip(hole == 0.0f ? -1 : 1);
 }
 #endif
 
@@ -115,48 +115,48 @@ void InitializeInputData(Varyings IN, half3 normalTS, out InputData input)
 //hash for randomness
 float2 hash2D2D_float(float2 s)
 {
-	//magic numbers
-	return frac(sin(fmod(float2(dot(s, float2(127.1, 311.7)), dot(s, float2(269.5, 183.3))), 3.14159))*43758.5453);
+    //magic numbers
+    return frac(sin(fmod(float2(dot(s, float2(127.1, 311.7)), dot(s, float2(269.5, 183.3))), 3.14159))*43758.5453);
 }
 //stochastic sampling
 float4 tex2DStochastic_float(Texture2D tex, SamplerState samplerTex, float2 UV)
 {
-	//triangle vertices and blend weights
-	//BW_vx[0...2].xyz = triangle verts
-	//BW_vx[3].xy = blend weights (z is unused)
-	float4x3 BW_vx;
-	//uv transformed into triangular grid space with UV scaled by approximation of 2*sqrt(3)
-	float2 skewUV = mul(float2x2 (1.0, 0.0, -0.57735027, 1.15470054), UV * 3.464);
-	//vertex IDs and barycentric coords
-	float2 vxID = float2 (floor(skewUV));
-	float3 barry = float3 (frac(skewUV), 0);
-	barry.z = 1.0 - barry.x - barry.y;
-	BW_vx = ((barry.z > 0) ?
-			 float4x3(float3(vxID, 0), float3(vxID + float2(0, 1), 0), float3(vxID + float2(1, 0), 0), barry.zyx) :
-			 float4x3(float3(vxID + float2 (1, 1), 0), float3(vxID + float2 (1, 0), 0), float3(vxID + float2 (0, 1), 0), float3(-barry.z, 1.0 - barry.y, 1.0 - barry.x)));
-	//calculate derivatives to avoid triangular grid artifacts
-	float2 dx = ddx(UV);
-	float2 dy = ddy(UV);
-	//blend samples with calculated weights  
-	return mul(tex.SampleGrad(samplerTex, UV + hash2D2D_float(BW_vx[0].xy), dx, dy), BW_vx[3].x) +
-		mul(tex.SampleGrad(samplerTex, UV + hash2D2D_float(BW_vx[1].xy), dx, dy), BW_vx[3].y) +
-		mul(tex.SampleGrad(samplerTex, UV + hash2D2D_float(BW_vx[2].xy), dx, dy), BW_vx[3].z);
+    //triangle vertices and blend weights
+    //BW_vx[0...2].xyz = triangle verts
+    //BW_vx[3].xy = blend weights (z is unused)
+    float4x3 BW_vx;
+    //uv transformed into triangular grid space with UV scaled by approximation of 2*sqrt(3)
+    float2 skewUV = mul(float2x2 (1.0, 0.0, -0.57735027, 1.15470054), UV * 3.464);
+    //vertex IDs and barycentric coords
+    float2 vxID = float2 (floor(skewUV));
+    float3 barry = float3 (frac(skewUV), 0);
+    barry.z = 1.0 - barry.x - barry.y;
+    BW_vx = ((barry.z > 0) ?
+             float4x3(float3(vxID, 0), float3(vxID + float2(0, 1), 0), float3(vxID + float2(1, 0), 0), barry.zyx) :
+             float4x3(float3(vxID + float2 (1, 1), 0), float3(vxID + float2 (1, 0), 0), float3(vxID + float2 (0, 1), 0), float3(-barry.z, 1.0 - barry.y, 1.0 - barry.x)));
+    //calculate derivatives to avoid triangular grid artifacts
+    float2 dx = ddx(UV);
+    float2 dy = ddy(UV);
+    //blend samples with calculated weights  
+    return mul(tex.SampleGrad(samplerTex, UV + hash2D2D_float(BW_vx[0].xy), dx, dy), BW_vx[3].x) +
+        mul(tex.SampleGrad(samplerTex, UV + hash2D2D_float(BW_vx[1].xy), dx, dy), BW_vx[3].y) +
+        mul(tex.SampleGrad(samplerTex, UV + hash2D2D_float(BW_vx[2].xy), dx, dy), BW_vx[3].z);
 }
 
 void SplatmapMix(float4 uvMainAndLM, float4 uvSplat01, float4 uvSplat23, inout half4 splatControl, out half weight, out half4 mixedDiffuse, out half4 defaultSmoothness, inout half3 mixedNormal)
 {
     half4 diffAlbedo[4];
-	
-	// - STOCHASTIC TERRAIN DIFFUSE
+    
+    // - STOCHASTIC TERRAIN DIFFUSE
     /*diffAlbedo[0] = SAMPLE_TEXTURE2D(_Splat0, sampler_Splat0, uvSplat01.xy);
-	diffAlbedo[1] = SAMPLE_TEXTURE2D(_Splat1, sampler_Splat0, uvSplat01.zw);
-	diffAlbedo[2] = SAMPLE_TEXTURE2D(_Splat2, sampler_Splat0, uvSplat23.xy);
-	diffAlbedo[3] = SAMPLE_TEXTURE2D(_Splat3, sampler_Splat0, uvSplat23.zw);*/
-	diffAlbedo[0] = tex2DStochastic_float(_Splat0, sampler_Splat0, uvSplat01.xy);
-	diffAlbedo[1] = tex2DStochastic_float(_Splat1, sampler_Splat0, uvSplat01.zw);
-	diffAlbedo[2] = tex2DStochastic_float(_Splat2, sampler_Splat0, uvSplat23.xy);
-	diffAlbedo[3] = tex2DStochastic_float(_Splat3, sampler_Splat0, uvSplat23.zw);
-	// - END OF STOCHASTIC TERRAIN DIFFUSE
+    diffAlbedo[1] = SAMPLE_TEXTURE2D(_Splat1, sampler_Splat0, uvSplat01.zw);
+    diffAlbedo[2] = SAMPLE_TEXTURE2D(_Splat2, sampler_Splat0, uvSplat23.xy);
+    diffAlbedo[3] = SAMPLE_TEXTURE2D(_Splat3, sampler_Splat0, uvSplat23.zw);*/
+    diffAlbedo[0] = tex2DStochastic_float(_Splat0, sampler_Splat0, uvSplat01.xy);
+    diffAlbedo[1] = tex2DStochastic_float(_Splat1, sampler_Splat0, uvSplat01.zw);
+    diffAlbedo[2] = tex2DStochastic_float(_Splat2, sampler_Splat0, uvSplat23.xy);
+    diffAlbedo[3] = tex2DStochastic_float(_Splat3, sampler_Splat0, uvSplat23.zw);
+    // - END OF STOCHASTIC TERRAIN DIFFUSE
 
     // This might be a bit of a gamble -- the assumption here is that if the diffuseMap has no
     // alpha channel, then diffAlbedo[n].a = 1.0 (and _DiffuseHasAlphaN = 0.0)
@@ -194,20 +194,21 @@ void SplatmapMix(float4 uvMainAndLM, float4 uvSplat01, float4 uvSplat23, inout h
     mixedDiffuse += diffAlbedo[3] * half4(_DiffuseRemapScale3.rgb * splatControl.aaa, 1.0h);
 
 #ifdef _NORMALMAP
+    half3 nrm = 0.0f;
 
-	// - STOCHASTIC TERRAIN NORMAL MAP
+    // - STOCHASTIC TERRAIN NORMAL MAP
 
     /*nrm += splatControl.r * UnpackNormalScale(SAMPLE_TEXTURE2D(_Normal0, sampler_Normal0, uvSplat01.xy), _NormalScale0);
     nrm += splatControl.g * UnpackNormalScale(SAMPLE_TEXTURE2D(_Normal1, sampler_Normal0, uvSplat01.zw), _NormalScale1);
     nrm += splatControl.b * UnpackNormalScale(SAMPLE_TEXTURE2D(_Normal2, sampler_Normal0, uvSplat23.xy), _NormalScale2);
     nrm += splatControl.a * UnpackNormalScale(SAMPLE_TEXTURE2D(_Normal3, sampler_Normal0, uvSplat23.zw), _NormalScale3);*/
-	
-	nrm += splatControl.r * UnpackNormalScale(tex2DStochastic_float(_Normal0, sampler_Normal0, uvSplat01.xy), _NormalScale0);
-	nrm += splatControl.g * UnpackNormalScale(tex2DStochastic_float(_Normal1, sampler_Normal0, uvSplat01.zw), _NormalScale1);
-	nrm += splatControl.b * UnpackNormalScale(tex2DStochastic_float(_Normal2, sampler_Normal0, uvSplat23.xy), _NormalScale2);
-	nrm += splatControl.a * UnpackNormalScale(tex2DStochastic_float(_Normal3, sampler_Normal0, uvSplat23.zw), _NormalScale3);
-	
-	// - END OF STOCHASTIC TERRAIN NORMAL MAP
+    
+    nrm += splatControl.r * UnpackNormalScale(tex2DStochastic_float(_Normal0, sampler_Normal0, uvSplat01.xy), _NormalScale0);
+    nrm += splatControl.g * UnpackNormalScale(tex2DStochastic_float(_Normal1, sampler_Normal0, uvSplat01.zw), _NormalScale1);
+    nrm += splatControl.b * UnpackNormalScale(tex2DStochastic_float(_Normal2, sampler_Normal0, uvSplat23.xy), _NormalScale2);
+    nrm += splatControl.a * UnpackNormalScale(tex2DStochastic_float(_Normal3, sampler_Normal0, uvSplat23.zw), _NormalScale3);
+    
+    // - END OF STOCHASTIC TERRAIN NORMAL MAP
 
     // avoid risk of NaN when normalizing.
 #if HAS_HALF
@@ -434,7 +435,7 @@ struct AttributesLean
     float4 position     : POSITION;
     float3 normalOS       : NORMAL;
 #ifdef _ALPHATEST_ON
-	float2 texcoord     : TEXCOORD0;
+    float2 texcoord     : TEXCOORD0;
 #endif
     UNITY_VERTEX_INPUT_INSTANCE_ID
 };
@@ -465,19 +466,19 @@ VaryingsLean ShadowPassVertex(AttributesLean v)
     clipPos.z = max(clipPos.z, clipPos.w * UNITY_NEAR_CLIP_VALUE);
 #endif
 
-	o.clipPos = clipPos;
+    o.clipPos = clipPos;
 
 #ifdef _ALPHATEST_ON
-	o.texcoord = v.texcoord;
+    o.texcoord = v.texcoord;
 #endif
 
-	return o;
+    return o;
 }
 
 half4 ShadowPassFragment(VaryingsLean IN) : SV_TARGET
 {
 #ifdef _ALPHATEST_ON
-	ClipHoles(IN.texcoord);
+    ClipHoles(IN.texcoord);
 #endif
     return 0;
 }
@@ -492,15 +493,15 @@ VaryingsLean DepthOnlyVertex(AttributesLean v)
     TerrainInstancing(v.position, v.normalOS);
     o.clipPos = TransformObjectToHClip(v.position.xyz);
 #ifdef _ALPHATEST_ON
-	o.texcoord = v.texcoord;
+    o.texcoord = v.texcoord;
 #endif
-	return o;
+    return o;
 }
 
 half4 DepthOnlyFragment(VaryingsLean IN) : SV_TARGET
 {
 #ifdef _ALPHATEST_ON
-	ClipHoles(IN.texcoord);
+    ClipHoles(IN.texcoord);
 #endif
 #ifdef SCENESELECTIONPASS
     // We use depth prepass for scene selection in the editor, this code allow to output the outline correctly
