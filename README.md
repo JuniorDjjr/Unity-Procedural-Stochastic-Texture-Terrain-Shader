@@ -1,6 +1,7 @@
 # Unity Procedural Stochastic Texture Terrain Shader
 Procedural Stochastic Texturing for Unity URP terrain, to fix repeated tile patterns on terrain textures.  
-Tested on Unity 2019, 2020  
+
+I'm trying to keep updated to lastest Unity/URP version, so if you use old Unity (with old URP version), check commits for old versions of this shader. My first release version was tested on Unity 2019.  
 
 ![](https://1.bp.blogspot.com/-nQy-BVqnTPM/XrnbfO7LctI/AAAAAAAAYOY/mAjoKityEYIA3fKWPGhHQ7LCDaPhVAniACK4BGAsYHg/w1175-h1170/warpunk-game-procedural-stochastic-terrain-shader-texturing-unity-urp.jpg)
 
